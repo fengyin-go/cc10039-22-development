@@ -545,3 +545,14 @@ SEED_ROWS: dict[str, list[dict[str, Any]]] = {
   '执行状态': '治理报告样例3',
   '审批状态': '治理报告样例3'}]
 }
+
+# 数据目录字段生效状态种子：演示湖表 ods_orders 的初始目录结构。
+# 每列记录生效类型；版本号由 store 初始化时统一编为 1，来源记为 SEED。
+CATALOG_FIELD_SEED: dict[str, dict[str, str]] = {
+    "ods_orders": {
+        "order_id": "string",
+        "user_id": "bigint",
+        "amount": "decimal(10,2)",
+        "legacy_flag": "string",
+    },
+}

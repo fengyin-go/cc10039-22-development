@@ -90,6 +90,9 @@
       <span>共 {{ total }} 条{{ meta.name }}记录</span>
       <span v-if="errorMessage" class="error-text">{{ errorMessage }}</span>
     </footer>
+
+    <SyncFieldChangePanel v-if="meta.key === 'metadata_sync'" />
+    <CatalogSchemaPanel v-if="meta.key === 'data_catalog'" />
   </section>
 </template>
 
@@ -103,6 +106,8 @@ import {
   moduleMeta,
   runAction as applyAction,
 } from '@/api/backend-service'
+import CatalogSchemaPanel from '@/components/CatalogSchemaPanel.vue'
+import SyncFieldChangePanel from '@/components/SyncFieldChangePanel.vue'
 import type { EntryRow } from '@/data/types'
 
 const props = defineProps<{ moduleKey: string }>()

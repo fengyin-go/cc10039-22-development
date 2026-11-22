@@ -11,11 +11,13 @@
 .
 ├── frontend/                 Vue 3 + Vite + TypeScript 前端
 │   ├── src/views/WorkbenchView.vue|tsx  全部模块共享工作台
+│   ├── src/components/       模块扩展面板（同步字段变更单、目录生效结构）
 │   ├── src/data/modules.ts              18个业务模块配置
 │   ├── src/api/              统一请求封装
 │   └── vite.config.ts        dev server 配置（open: false）
 ├── backend/                  FastAPI（Python） 后端
 │   ├── app/routers/resource.py  通用查询/导出/登记/动作接口
+│   ├── app/routers/sync_field_change.py  同步字段变更单与目录结构接口
 │   ├── app/services/<key>.py    每个模块独立领域逻辑
 │   ├── app/services/base.py     共享服务骨架
 │   └── app/store.py          内存数据仓库与示例数据
@@ -78,6 +80,31 @@ npm run dev
   `frontend/src/domain/<模块>.ts`，用于承载真实业务差异并维持36题位容量。
 - 列表接口统一返回 `{ items, total, page, size }`，动作接口统一返回 `{ ok, message }`。
 - 状态流转只允许在 `app/services` 里改，路由层不做业务判断。
+
+## 同步字段变更单（元数据同步 → 数据目录）
+
+值班员在「元数据同步」页面向同步作业提交源端目录字段差量文件（字段增删及类型差异），
+落库为同步字段变更单；「数据目录」在同步作业的回执内领取变更单，按字段应用确认过的
+差量。此后读湖表结构以目录生效类型为准，每列可追溯到来源变更单。
+
+- 差量文件携带本次输入版本（`source_version` + 下载时的目标端基线版本
+  `base_version`）；变更单同时记录目标端版本（提交时 / 应用后的目录版本），两端版本
+  均可从变更单核对。
+- 目标列在文件下载后被独立修改且与导入类型冲突时，保留目标端当前值并列入待核对
+  范围；文件以外的字段不受此轮变更影响。
+- 同一差量文件按内容指纹幂等，重复导入只记一次。
+
+关键接口：
+
+| 接口 | 说明 |
+| --- | --- |
+| `POST /api/metadata-sync/{job_id}/batches` | 提交同步批次（差量文件落库为变更单，幂等） |
+| `GET /api/metadata-sync/{job_id}/receipt` | 同步作业应用回执（应用字段、待核对范围、双端版本） |
+| `GET /api/metadata-sync/tickets/{ticket_id}` | 变更单详情 |
+| `POST /api/metadata-sync/tickets/{ticket_id}/apply` | 数据目录领取变更单并应用 |
+| `GET /api/data-catalog/tables/{table}/schema` | 读湖表生效结构（类型以目录为准，可追溯变更单） |
+| `POST /api/data-catalog/tables/{table}/columns/{field}` | 独立调整目录列类型 |
+| `GET /api/data-catalog/pending-review` | 待核对范围（可按 table 过滤） |
 
 领域：数据工程
 子方向：数仓与数据湖
